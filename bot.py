@@ -4,7 +4,6 @@ import pandas as pd
 from datetime import datetime
 from binance.client import Client
 
-# --- إعدادات البيئة ---
 BINANCE_API_KEY = os.environ.get('BINANCE_API_KEY')
 BINANCE_API_SECRET = os.environ.get('BINANCE_API_SECRET')
 TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
@@ -45,27 +44,18 @@ def get_candidates():
 def run_bot_job():
     candidates = get_candidates()
     all_signals = []
-    
-    # 1. Breakout
     for sym in candidates:
         df = get_recent_data(sym, '1h', limit=60)
-        if df is not None and len(df) > 50 and df.iloc[-2]['Close'] > df['High'].iloc[-50:-5].max():
-            all_signals.append(f"📈 <b>Breakout 1H (LONG):</b> #{sym}")
-            
-    # 2. CHoCH Long
-    for sym in candidates:
-        df = get_recent_data(sym, '1h', limit=100)
-        if df is not None and len(df) > 50 and df.iloc[-15:]['Close'].max() > df['High'].iloc[-50:-15].max():
-            all_signals.append(f"🎯 <b>CHoCH 1H (LONG):</b> #{sym}")
-
-    # 3. CHoCH Short
-    for sym in candidates:
-        df = get_recent_data(sym, '1h', limit=100)
-        if df is not None and len(df) > 50 and df.iloc[-15:]['Close'].min() < df['Low'].iloc[-50:-15].min():
-            all_signals.append(f"🔻 <b>CHoCH 1H (SHORT):</b> #{sym}")
+        if df is not None and len(df) > 50:
+            if df.iloc[-2]['Close'] > df['High'].iloc[-50:-5].max():
+                all_signals.append(f"📈 <b>Breakout:</b> #{sym}")
+            elif df.iloc[-15:]['Close'].max() > df['High'].iloc[-50:-15].max():
+                all_signals.append(f"🎯 <b>CHoCH Long:</b> #{sym}")
+            elif df.iloc[-15:]['Close'].min() < df['Low'].iloc[-50:-15].min():
+                all_signals.append(f"🔻 <b>CHoCH Short:</b> #{sym}")
     
     if all_signals:
-        msg = "<b>🚨 Sniper Bot V22 (Hourly Scan)</b>\n\n" + "\n".join(all_signals[:10]) + "\n\n⚠️ <i>check it yourself</i>"
+        msg = "<b>🚨 Sniper Bot V22 (Hourly Scan)</b>\n\n" + "\n".join(all_signals[:10])
         send_telegram_message(msg)
 
 run_bot_job()
