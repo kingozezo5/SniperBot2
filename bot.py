@@ -4,7 +4,7 @@ import pandas as pd
 from datetime import datetime
 from binance.client import Client
 
-# --- إعدادات البيئة (GitHub Secrets) ---
+# --- إعدادات البيئة ---
 BINANCE_API_KEY = os.environ.get('BINANCE_API_KEY')
 BINANCE_API_SECRET = os.environ.get('BINANCE_API_SECRET')
 TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
@@ -12,29 +12,13 @@ TELEGRAM_CHAT_ID = os.environ.get('TELEGRAM_CHAT_ID')
 
 client = Client(BINANCE_API_KEY, BINANCE_API_SECRET)
 
-# --- قائمة الحظر ---
-BLACKLIST = {
-    'LINK', 'BTT', 'TOMO', 'MATIC', 'ARES', 'GARD', 'BB', 'WBETH', 'WNXM', 'PHM', 'SPEC', 'RAFT', 'NIZA', 'REN', 'XVS',
-    'SHIB', 'KMNO', 'OMNI', 'CAKE', 'BZRX', 'HEGIC', 'BETA', 'FRONT', 'RAMP', 'PERP',
-    'KAVA', 'ALPACA', 'RUNE', 'KCS', 'DF', 'OM', 'MLN', 'YFI', 'GNO', 'MIR', 'BADGER',
-    'SYNC', 'TROY', 'ZRO', 'AKRO', 'BURGER', 'SUN', 'MBOX', 'OIN', 'PIG', 'FARM', 'WBTC',
-    'MEAN', 'TUT', 'AERO', 'NIL', 'CRH', 'RED', 'BTL', 'LAYER', 'CNAME', 'TST', 'BERA',
-    'LEMN', 'ACT', 'OLAND', 'BIO', 'SOLV', 'EYWA', 'CGPT', 'BPT', 'HIVP', 'PENGU', 'IZI',
-    'VANA', 'VELO', 'ACX', 'ORCA', 'XION', 'THE', 'BMT', 'CETUS', 'VELA', 'VIRTUAL',
-    'STRP', 'KERNEL', 'INIT', 'WAL', 'SIGN', 'SYRUP', 'SYNTH', 'PAI', 'ATU', 'AIXBT',
-    'USD1', 'SAHARA', 'HNB', 'BXC', 'PUMP', 'FOREST', 'MYRO', 'PLUME', 'DOP', 'BFUSD',
-    'SPICE', 'LILPEPE', 'DOLO', 'OCTO', 'RESOLVE', 'EUR', 'EURI', 'FDUSD', 'USDC',
-    'TUSD', 'USDTTRY', 'BTC', 'ETH', 'APT', 'HBAR', 'STORJ', 'CVX', 'ZRX', 'FLOKI'
-}
+BLACKLIST = {'LINK', 'BTT', 'TOMO', 'MATIC', 'ARES', 'GARD', 'BB', 'WBETH', 'WNXM', 'PHM', 'SPEC', 'RAFT', 'NIZA', 'REN', 'XVS', 'SHIB', 'KMNO', 'OMNI', 'CAKE', 'BZRX', 'HEGIC', 'BETA', 'FRONT', 'RAMP', 'PERP', 'KAVA', 'ALPACA', 'RUNE', 'KCS', 'DF', 'OM', 'MLN', 'YFI', 'GNO', 'MIR', 'BADGER', 'SYNC', 'TROY', 'ZRO', 'AKRO', 'BURGER', 'SUN', 'MBOX', 'OIN', 'PIG', 'FARM', 'WBTC', 'MEAN', 'TUT', 'AERO', 'NIL', 'CRH', 'RED', 'BTL', 'LAYER', 'CNAME', 'TST', 'BERA', 'LEMN', 'ACT', 'OLAND', 'BIO', 'SOLV', 'EYWA', 'CGPT', 'BPT', 'HIVP', 'PENGU', 'IZI', 'VANA', 'VELO', 'ACX', 'ORCA', 'XION', 'THE', 'BMT', 'CETUS', 'VELA', 'VIRTUAL', 'STRP', 'KERNEL', 'INIT', 'WAL', 'SIGN', 'SYRUP', 'SYNTH', 'PAI', 'ATU', 'AIXBT', 'USD1', 'SAHARA', 'HNB', 'BXC', 'PUMP', 'FOREST', 'MYRO', 'PLUME', 'DOP', 'BFUSD', 'SPICE', 'LILPEPE', 'DOLO', 'OCTO', 'RESOLVE', 'EUR', 'EURI', 'FDUSD', 'USDC', 'TUSD', 'USDTTRY', 'BTC', 'ETH', 'APT', 'HBAR', 'STORJ', 'CVX', 'ZRX', 'FLOKI'}
 
-# --- دالات العمل ---
 def send_telegram_message(message):
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     payload = {"chat_id": TELEGRAM_CHAT_ID, "text": message, "parse_mode": "HTML"}
-    try:
-        requests.post(url, json=payload)
-    except Exception as e:
-        print(f"Telegram Error: {e}")
+    try: requests.post(url, json=payload)
+    except: pass
 
 def get_recent_data(symbol, interval='1h', limit=100):
     try:
@@ -58,49 +42,30 @@ def get_candidates():
         return candidates
     except: return []
 
-def scan_breakout_1h(candidates):
-    results = []
-    for sym in candidates:
-        df = get_recent_data(sym, '1h', limit=60)
-        if df is None or len(df) < 50: continue
-        if df.iloc[-2]['Close'] > df['High'].iloc[-50:-5].max():
-            results.append(f"📈 <b>Breakout 1H (LONG):</b> #{sym}")
-    return results
-
-def scan_choch_1h_long(candidates):
-    results = []
-    for sym in candidates:
-        df = get_recent_data(sym, '1h', limit=100)
-        if df is None or len(df) < 50: continue
-        lookback = df.iloc[-50:-15]
-        last_lh = lookback['High'].max()
-        if df.iloc[-15:]['Close'].max() > last_lh:
-            results.append(f"🎯 <b>CHoCH 1H (LONG):</b> #{sym}")
-    return results
-
-def scan_choch_1h_short(candidates):
-    results = []
-    for sym in candidates:
-        df = get_recent_data(sym, '1h', limit=100)
-        if df is None or len(df) < 50: continue
-        lookback = df.iloc[-50:-15]
-        last_ll = lookback['Low'].min()
-        if df.iloc[-15:]['Close'].min() < last_ll:
-            results.append(f"🔻 <b>CHoCH 1H (SHORT):</b> #{sym}")
-    return results
-
 def run_bot_job():
     candidates = get_candidates()
     all_signals = []
-    all_signals.extend(scan_breakout_1h(candidates))
-    all_signals.extend(scan_choch_1h_long(candidates))
-    all_signals.extend(scan_choch_1h_short(candidates))
+    
+    # 1. Breakout
+    for sym in candidates:
+        df = get_recent_data(sym, '1h', limit=60)
+        if df is not None and len(df) > 50 and df.iloc[-2]['Close'] > df['High'].iloc[-50:-5].max():
+            all_signals.append(f"📈 <b>Breakout 1H (LONG):</b> #{sym}")
+            
+    # 2. CHoCH Long
+    for sym in candidates:
+        df = get_recent_data(sym, '1h', limit=100)
+        if df is not None and len(df) > 50 and df.iloc[-15:]['Close'].max() > df['High'].iloc[-50:-15].max():
+            all_signals.append(f"🎯 <b>CHoCH 1H (LONG):</b> #{sym}")
+
+    # 3. CHoCH Short
+    for sym in candidates:
+        df = get_recent_data(sym, '1h', limit=100)
+        if df is not None and len(df) > 50 and df.iloc[-15:]['Close'].min() < df['Low'].iloc[-50:-15].min():
+            all_signals.append(f"🔻 <b>CHoCH 1H (SHORT):</b> #{sym}")
     
     if all_signals:
-        msg = "<b>🚨 Sniper Bot V22 (Hourly Scan)</b>\n\n" + "\n".join(all_signals) + "\n\n⚠️ <i>possible breakout check it yourself before you decide to trade</i>"
+        msg = "<b>🚨 Sniper Bot V22 (Hourly Scan)</b>\n\n" + "\n".join(all_signals[:10]) + "\n\n⚠️ <i>check it yourself</i>"
         send_telegram_message(msg)
-    else:
-        print("No signals found.")
 
-# تنفيذ الكود فوراً
 run_bot_job()
